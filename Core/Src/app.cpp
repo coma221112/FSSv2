@@ -65,7 +65,7 @@ uint8_t HID_SendReport_Safe(USBD_HandleTypeDef *pdev,
 }
 
 extern "C" void RealMain(){
-
+	//PC13=1;
 	while(!(sg0.configGood&&sg1.configGood&&sg2.configGood));
 	PC13=0;
 
