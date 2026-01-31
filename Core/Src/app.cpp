@@ -176,28 +176,9 @@ extern "C" void RealMain(){
 		}
 
 		//report.btn1_8=button_stable_state[0];
-		report.buttons.bits.button1  = button_stable_state[0];
-		report.buttons.bits.button2  = button_stable_state[1];
-		report.buttons.bits.button3  = button_stable_state[2];
-		report.buttons.bits.button4  = button_stable_state[3];
-		report.buttons.bits.button5  = button_stable_state[4];
-		report.buttons.bits.button6  = button_stable_state[5];
-		report.buttons.bits.button7  = button_stable_state[6];
-		report.buttons.bits.button8  = button_stable_state[7];
-		report.buttons.bits.button9  = button_stable_state[8];
-		report.buttons.bits.button10 = button_stable_state[9];
-		report.buttons.bits.button11 = button_stable_state[10];
-		report.buttons.bits.button12 = button_stable_state[11];
-		report.buttons.bits.button13 = button_stable_state[12];
-		report.buttons.bits.button14 = button_stable_state[13];
-		report.buttons.bits.button15 = button_stable_state[14];
-		report.buttons.bits.button16 = button_stable_state[15];
-		report.buttons.bits.button17 = button_stable_state[16];
-		report.buttons.bits.button18 = button_stable_state[17];
-		report.buttons.bits.button19 = button_stable_state[18];
-		report.buttons.bits.button20 = button_stable_state[19];
-		report.buttons.bits.button21 = button_stable_state[20];
-		report.buttons.bits.button22 = button_stable_state[21];
+		for(int i=0;i<21;i++){
+			report.buttons[i]=button_stable_state[0];
+		}
 
 		static uint32_t pressStartTime = 0;
 		// 读取 PC0 引脚状态
@@ -217,9 +198,7 @@ extern "C" void RealMain(){
 		    // 只要按键松开（电平变回 1），立即清零计时器
 		    pressStartTime = 0;
 		}
-		// Send the report
-		static uint32_t lastJoystickSend = 0;
-		static uint32_t lastConfigSend = 0;
+
 
 
 		if (configNeedsSending) {

@@ -8,47 +8,36 @@
 #ifndef INC_JOYSTICKPROTOCOL_HPP_
 #define INC_JOYSTICKPROTOCOL_HPP_
 
-typedef struct
-{
-	uint8_t reportID;
-  union {
-    struct {
-      uint32_t button1  : 1;
-      uint32_t button2  : 1;
-      uint32_t button3  : 1;
-      uint32_t button4  : 1;
-      uint32_t button5  : 1;
-      uint32_t button6  : 1;
-      uint32_t button7  : 1;
-      uint32_t button8  : 1;
-      uint32_t button9  : 1;
-      uint32_t button10 : 1;
-      uint32_t button11 : 1;
-      uint32_t button12 : 1;
-      uint32_t button13 : 1;
-      uint32_t button14 : 1;
-      uint32_t button15 : 1;
-      uint32_t button16 : 1;
-      uint32_t button17 : 1;
-      uint32_t button18 : 1;
-      uint32_t button19 : 1;
-      uint32_t button20 : 1;
-      uint32_t button21 : 1;
-      uint32_t button22 : 1;
-      uint32_t button23 : 1;
-      uint32_t button24 : 1;
-      uint32_t padding  : 8;  // Padding to align to 32 bits
-    } bits;
-    uint32_t all_buttons;      // Access all buttons as a single uint32_t
-  } buttons;
+typedef struct {
+    uint8_t reportID;
 
-  int16_t x;      // Axis X (-32768 to 32767)
-  int16_t y;      // Axis Y (-32768 to 32767)
-  int16_t z;      // Axis Z (-32768 to 32767)
-  int16_t rx;     // Axis Rx (-32768 to 32767)
-  int16_t ry;     // Axis Ry (-32768 to 32767)
-  int16_t rz;     // Axis Rz (-32768 to 32767)
-  int16_t lt;     // Axis Rz (-32768 to 32767)
+#ifdef __cplusplus
+    struct BitProxy {
+        uint32_t* data_ref;
+        int index;
+
+        BitProxy& operator=(bool value) {
+            if (value) *data_ref |= (1UL << index);
+            else       *data_ref &= ~(1UL << index);
+            return *this;
+        }
+
+        operator bool() const {
+            return (*data_ref >> index) & 1UL;
+        }
+    };
+
+    struct ButtonManager {
+        uint32_t data; // 实际存储 24 bits + 8 bits padding
+        BitProxy operator[](int i) {
+            return {&data, i};
+        }
+    } buttons;
+#else
+    uint32_t buttons;
+#endif
+
+    int16_t x, y, z, rx, ry, rz, lt;
 
 } __attribute__((packed)) USB_HID_JoystickReport_t;
 
