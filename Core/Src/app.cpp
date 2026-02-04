@@ -130,29 +130,39 @@ extern "C" void RealMain(){
 		report.ry = dv1 / maxRange * 32767;
 		report.rz = dv2 / maxRange * 32767;
 		report.lt = loopTime;
-
-		raw_pins[0]  = !PA6;   // ✔ 底边 PA6  GPIO_Input
-		raw_pins[1]  = !PA7;   // ✔ 底边 PA7
-		raw_pins[2]  = !PB0;   // ✔ 底边 PB0
-		raw_pins[3]  = !PB1;   // ✔ 底边 PB1
-		raw_pins[4]  = !PB10;  // ✔ 底边 PB10
-		raw_pins[5]  = !PB11;  // ✔ 底边 PB11
-		raw_pins[6]  = !PB9;   // ✔ 顶边 PB9
-		raw_pins[7]  = !PB8;   // ✔ 顶边 PB8
-		raw_pins[8]  = !PB7;   // ✔ 顶边 PB7
-		raw_pins[9]  = !PB6;   // ✔ 顶边 PB6
-		raw_pins[10] = !PB5;   // ✔ 顶边 PB5
-		raw_pins[11] = !PB4;   // ✔ 顶边 PB4
-		raw_pins[12] = !PB3;   // ✔ 顶边 PB3
-		raw_pins[13] = !PA15;  // ✔ 顶边 PA15（已关闭 JTAG）
-		raw_pins[14] = !PA10;  // ✔ 右边 PA10
-		raw_pins[15] = !PA9;   // ✔ 右边 PA9
-		raw_pins[16] = !PA8;   // ✔ 右边 PA8
-		raw_pins[17] = !PB15;  // ✔ 右边 PB15
-		raw_pins[18] = !PB14;  // ✔ 右边 PB14
-		raw_pins[19] = !PB13;  // ✔ 右边 PB13
-		raw_pins[20] = !PB12;  // ✔ 右边 PB12
-		//raw_pins[21] = 0;
+		GPIOPin buttonPins[21]={
+				PB1,
+				PB4,PB8,PB3,PA8,
+				PB12,PB15,PB6,PB14,PB5,
+				PA6,PA9,PA7,PB13,
+				PB9,PB0,PA10,PA15,
+				PB7,PB11,PB10
+		};
+		for(int i=0;i<21;i++){
+			raw_pins[i] = !buttonPins[i];
+		}
+//		raw_pins[0]  = !PA6;   // ✔ 底边 PA6  GPIO_Input
+//		raw_pins[1]  = !PA7;   // ✔ 底边 PA7
+//		raw_pins[2]  = !PB0;   // ✔ 底边 PB0
+//		raw_pins[3]  = !PB1;   // ✔ 底边 PB1
+//		raw_pins[4]  = !PB10;  // ✔ 底边 PB10
+//		raw_pins[5]  = !PB11;  // ✔ 底边 PB11
+//		raw_pins[6]  = !PB9;   // ✔ 顶边 PB9
+//		raw_pins[7]  = !PB8;   // ✔ 顶边 PB8
+//		raw_pins[8]  = !PB7;   // ✔ 顶边 PB7
+//		raw_pins[9]  = !PB6;   // ✔ 顶边 PB6
+//		raw_pins[10] = !PB5;   // ✔ 顶边 PB5
+//		raw_pins[11] = !PB4;   // ✔ 顶边 PB4
+//		raw_pins[12] = !PB3;   // ✔ 顶边 PB3
+//		raw_pins[13] = !PA15;  // ✔ 顶边 PA15（已关闭 JTAG）
+//		raw_pins[14] = !PA10;  // ✔ 右边 PA10
+//		raw_pins[15] = !PA9;   // ✔ 右边 PA9
+//		raw_pins[16] = !PA8;   // ✔ 右边 PA8
+//		raw_pins[17] = !PB15;  // ✔ 右边 PB15
+//		raw_pins[18] = !PB14;  // ✔ 右边 PB14
+//		raw_pins[19] = !PB13;  // ✔ 右边 PB13
+//		raw_pins[20] = !PB12;  // ✔ 右边 PB12
+//		//raw_pins[21] = 0;
 
 		uint32_t now = HAL_GetTick(); // 使用毫秒级时间戳
 
@@ -175,14 +185,13 @@ extern "C" void RealMain(){
 		    buttons[i].last_raw_state = current_raw;
 		}
 
-		//report.btn1_8=button_stable_state[0];
 		for(int i=0;i<21;i++){
-			report.buttons[i]=button_stable_state[0];
+			report.buttons[i] = button_stable_state[i];
 		}
 
 		static uint32_t pressStartTime = 0;
 		// 读取 PC0 引脚状态
-		if (PC0 == 55) {
+		if (report.buttons[20] == 1) {
 		    // 如果是刚按下（计时器还没启动），则记录当前系统时间
 		    if (pressStartTime == 0) {
 		        pressStartTime = HAL_GetTick();
