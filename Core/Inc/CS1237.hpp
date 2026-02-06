@@ -20,9 +20,9 @@ public:
     volatile int8_t configState = 0; // 对应原本的 state_g_config
     volatile bool configGood = false;
     uint8_t sampleCounter = 0;
-
-    static inline uint8_t targetConfig = 0b01101100;
-    static inline uint8_t sampleInterval = 2;
+    volatile bool readyRead = false;
+    static inline uint8_t targetConfig = 0b01111100;
+    static constexpr inline uint8_t sampleInterval = 1;
 
     CS1237() = delete;
 
@@ -31,23 +31,30 @@ public:
         EXTI_Manager::registerPin(DOUT.pin_, this);
     }
 
+    inline operator uint32_t() const{
+    	return ADCdata;
+    }
     void onExternalInterrupt() override {
-    	if(sampleCounter==0) configState=0;
-        if (++sampleCounter % sampleInterval != 0) return;
+    	//if(configGood){
+    	//	readyRead = true;
+    	//	return;
+    	//}
+    	//else{
+			//if(sampleCounter==0) configState=0;
+			//if (++sampleCounter % sampleInterval != 0) return;
 
-        ADCdata = ADCreadImmediately();
+			ADCdata = ADCreadImmediately();
 
-        // ADCdata = filter.update(ADCdata);
+			syncConfig();
 
-        syncConfig();
-
-        uint32_t pinMask = DOUT.pin_;
-        __HAL_GPIO_EXTI_CLEAR_IT(pinMask);
+			uint32_t pinMask = DOUT.pin_;
+			__HAL_GPIO_EXTI_CLEAR_IT(pinMask);
+    	//}
     }
 
 
     inline void syncConfig() {
-        const uint8_t mask = (1u << 5) | (1u << 4);
+        const uint8_t mask = 0b11111111;
         switch (configState) {
             case 0: { // 检查配置
                 uint8_t current = ReadByte();
@@ -71,11 +78,12 @@ public:
     }
 
     inline int32_t ADCreadImmediately() {
-        int32_t raw = 0;
+        ADCdata = 0;
+        delay_us(2);
         // DOUT 切换为输入模式（取决于你的 GPIOPin 类实现，通常 DOUT 此时已是输入）
         for (int i = 0; i < 24; i++) {
             SCL_H(); delay_us();
-            raw = (raw << 1) | (DOUT.read() == GPIO_PIN_SET ? 1 : 0);
+            ADCdata = (ADCdata << 1) | (DOUT.read() == GPIO_PIN_SET ? 1 : 0);
             SCL_L(); delay_us();
         }
         // 补 3 个脉冲
@@ -84,8 +92,8 @@ public:
             SCL_L(); delay_us();
         }
         // 符号扩展：24位转32位有符号
-        if (raw & 0x800000) raw |= 0xFF000000;
-        return raw;
+        if (ADCdata & 0x800000) ADCdata |= 0xFF000000;
+        return ADCdata;
     }
 
     // --- 寄存器读写逻辑 (ReadByte/WriteByte) ---

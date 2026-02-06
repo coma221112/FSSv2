@@ -10,6 +10,8 @@
 #include "usb_device.h"
 #include "ZeroTracker.hpp"
 #include "JoystickProtocol.hpp"
+#include "Filters.hpp"
+
 #include "cmath"
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
@@ -69,22 +71,42 @@ extern "C" void RealMain(){
 	while(!(sg0.configGood&&sg1.configGood&&sg2.configGood));
 	PC13=0;
 
+	//MedianFilter<15> mf0,mf1,mf2;
+	EMA ema0(4),ema1(4),ema2(4);
 	ZeroTracker zt0(sg0.ADCdata),zt1(sg1.ADCdata),zt2(sg2.ADCdata);
 	int32_t v0,v1,v2;
 	int32_t dc0,dc1,dc2;
 	int32_t dv0,dv1,dv2;
-    uint32_t lastL=0;
+	dc0=sg0.ADCdata;
+	dc1=sg1.ADCdata;
+	dc2=sg2.ADCdata;
 
+    uint32_t lastL = DWT_GetUs();;
+    uint16_t loopTimes[256];
+    uint8_t loopCount = 0;
 	while(true){
 		uint32_t loopTime = DWT_GetUs()-lastL;
 		lastL = DWT_GetUs();
 
-		float maxRange = joystickConfig.maxRange;
-		//float scale = 32767.f / maxRange;
+		uint16_t maxLoopTime = 0;
+		loopCount++;
+		loopTimes[loopCount] = loopTime;
+		for(int i=0;i<256;i++){
+			if(loopTimes[i] > maxLoopTime) maxLoopTime = loopTimes[i];
+		}
 
-		v0=sg0.ADCdata;
-		v1=sg1.ADCdata;
-		v2=sg2.ADCdata;
+		float scale = 32767.f / joystickConfig.maxRange;
+		float maxRange = joystickConfig.maxRange;
+
+//		v0 = ema0.update(sg0.ADCdata);
+//		v1 = ema1.update(sg1.ADCdata);
+//		v2 = ema2.update(sg2.ADCdata);
+//		v0 = mf0.update(sg0.ADCdata);
+//		v1 = mf1.update(sg1.ADCdata);
+//		v2 = mf2.update(sg2.ADCdata);
+		v0 = sg0;
+		v1 = sg1;
+		v2 = sg2;
 		dc0=zt0.update(v0);
 		dc1=zt1.update(v1);
 		dc2=zt2.update(v2);
@@ -126,11 +148,11 @@ extern "C" void RealMain(){
 		report.x = fx * 32767;
 		report.y = fy * 32767;
 		report.z = fz * 32767;
-		report.rx = dv0 / maxRange * 32767;
-		report.ry = dv1 / maxRange * 32767;
-		report.rz = dv2 / maxRange * 32767;
-		report.lt = loopTime;
-		GPIOPin buttonPins[21]={
+		report.rx = dv0 * scale;
+		report.ry = dv1 * scale;
+		report.rz = dv2 * scale;
+		report.lt = maxLoopTime;
+		static GPIOPin buttonPins[21]={
 				PB1,
 				PB4,PB8,PB3,PA8,
 				PB12,PB15,PB6,PB14,PB5,
@@ -141,28 +163,6 @@ extern "C" void RealMain(){
 		for(int i=0;i<21;i++){
 			raw_pins[i] = !buttonPins[i];
 		}
-//		raw_pins[0]  = !PA6;   // ✔ 底边 PA6  GPIO_Input
-//		raw_pins[1]  = !PA7;   // ✔ 底边 PA7
-//		raw_pins[2]  = !PB0;   // ✔ 底边 PB0
-//		raw_pins[3]  = !PB1;   // ✔ 底边 PB1
-//		raw_pins[4]  = !PB10;  // ✔ 底边 PB10
-//		raw_pins[5]  = !PB11;  // ✔ 底边 PB11
-//		raw_pins[6]  = !PB9;   // ✔ 顶边 PB9
-//		raw_pins[7]  = !PB8;   // ✔ 顶边 PB8
-//		raw_pins[8]  = !PB7;   // ✔ 顶边 PB7
-//		raw_pins[9]  = !PB6;   // ✔ 顶边 PB6
-//		raw_pins[10] = !PB5;   // ✔ 顶边 PB5
-//		raw_pins[11] = !PB4;   // ✔ 顶边 PB4
-//		raw_pins[12] = !PB3;   // ✔ 顶边 PB3
-//		raw_pins[13] = !PA15;  // ✔ 顶边 PA15（已关闭 JTAG）
-//		raw_pins[14] = !PA10;  // ✔ 右边 PA10
-//		raw_pins[15] = !PA9;   // ✔ 右边 PA9
-//		raw_pins[16] = !PA8;   // ✔ 右边 PA8
-//		raw_pins[17] = !PB15;  // ✔ 右边 PB15
-//		raw_pins[18] = !PB14;  // ✔ 右边 PB14
-//		raw_pins[19] = !PB13;  // ✔ 右边 PB13
-//		raw_pins[20] = !PB12;  // ✔ 右边 PB12
-//		//raw_pins[21] = 0;
 
 		uint32_t now = HAL_GetTick(); // 使用毫秒级时间戳
 
@@ -190,7 +190,6 @@ extern "C" void RealMain(){
 		}
 
 		static uint32_t pressStartTime = 0;
-		// 读取 PC0 引脚状态
 		if (report.buttons[20] == 1) {
 		    // 如果是刚按下（计时器还没启动），则记录当前系统时间
 		    if (pressStartTime == 0) {

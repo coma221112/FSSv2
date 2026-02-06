@@ -10,9 +10,9 @@
 
 #include "CS1237.hpp"
 
-volatile CS1237 sg0(PA1,PA0);
-volatile CS1237 sg1(PA3,PA2);
-volatile CS1237 sg2(PA5,PA4);
+CS1237 sg0(PA1,PA0);
+CS1237 sg1(PA3,PA2);
+CS1237 sg2(PA5,PA4);
 
 
 

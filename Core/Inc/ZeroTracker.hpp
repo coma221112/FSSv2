@@ -16,7 +16,7 @@ class ZeroTracker {
 public:
     ZeroTracker(int32_t initialZero = 0)
         : zero(initialZero), deadzone(2400000), fastzone(10000), slowzone(2400000)
-        , slowRate(10), fastRate(10) {}
+        , slowRate(1), fastRate(1) {}
 
     void setDeadzone(int32_t threshold) { deadzone = threshold; }
     void setFastzone(int32_t threshold) { fastzone = threshold; }
@@ -25,7 +25,7 @@ public:
     void setFastRate(int8_t rate) { fastRate = rate; }
 
     int32_t update(int32_t rawValue) {
-    	if(HAL_GetTick()-lastUpdateMS>100){
+    	if(HAL_GetTick()-lastUpdateMS>10){
 			lastUpdateMS=HAL_GetTick();
 			int32_t dev = rawValue - zero;
 			int32_t absDev = (dev < 0) ? -dev : dev;
