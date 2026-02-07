@@ -10,13 +10,19 @@
 
 #include "EXTIManager.hpp"
 #include "GPIOHelper.hpp"
+#include "Filters.hpp"
+#include "Util.hpp"
 
 class CS1237 : public EXTI_Observer {
 public:
     GPIOPin DOUT;
     GPIOPin SCK;
 
+    EMA dema = EMA(23);
+    SMA<15> sma = SMA<15>();
+    volatile uint16_t ISRTime = 0;
     volatile int32_t ADCdata = 0;
+    volatile int32_t filtered = 0;
     volatile int8_t configState = 0; // 对应原本的 state_g_config
     volatile bool configGood = false;
     uint8_t sampleCounter = 0;
@@ -31,25 +37,23 @@ public:
         EXTI_Manager::registerPin(DOUT.pin_, this);
     }
 
-    inline operator uint32_t() const{
-    	return ADCdata;
-    }
+//    inline operator uint32_t() const{
+//    	return ADCdata;
+//    }
     void onExternalInterrupt() override {
-    	//if(configGood){
-    	//	readyRead = true;
-    	//	return;
-    	//}
-    	//else{
-			//if(sampleCounter==0) configState=0;
-			//if (++sampleCounter % sampleInterval != 0) return;
+    	if (++sampleCounter % sampleInterval != 0) return;
 
-			ADCdata = ADCreadImmediately();
+    	uint16_t start = DWT_GetUs();
 
-			syncConfig();
+		ADCdata = ADCreadImmediately();
+		syncConfig();
 
-			uint32_t pinMask = DOUT.pin_;
-			__HAL_GPIO_EXTI_CLEAR_IT(pinMask);
-    	//}
+		filtered = sma.update(ADCdata);
+
+		uint32_t pinMask = DOUT.pin_;
+		__HAL_GPIO_EXTI_CLEAR_IT(pinMask);
+
+		ISRTime = DWT_GetUs() - start;
     }
 
 
@@ -78,13 +82,15 @@ public:
     }
 
     inline int32_t ADCreadImmediately() {
-        ADCdata = 0;
-        delay_us(2);
+//        ADCdata = 0;
+//        delay_us(2);
+    	int32_t raw = 0;
         // DOUT 切换为输入模式（取决于你的 GPIOPin 类实现，通常 DOUT 此时已是输入）
         for (int i = 0; i < 24; i++) {
             SCL_H(); delay_us();
-            ADCdata = (ADCdata << 1) | (DOUT.read() == GPIO_PIN_SET ? 1 : 0);
+            raw = (raw << 1) | DOUT;
             SCL_L(); delay_us();
+
         }
         // 补 3 个脉冲
         for (int i = 0; i < 3; i++) {
@@ -92,8 +98,9 @@ public:
             SCL_L(); delay_us();
         }
         // 符号扩展：24位转32位有符号
-        if (ADCdata & 0x800000) ADCdata |= 0xFF000000;
-        return ADCdata;
+        if (raw & 0x800000) raw |= 0xFF000000;
+        ADCdata = raw;
+        return raw;
     }
 
     // --- 寄存器读写逻辑 (ReadByte/WriteByte) ---
@@ -113,7 +120,7 @@ public:
         uint8_t res = 0;
         for (int i = 0; i < 8; i++) {
             one_bit();
-            res = (res << 1) | (DOUT.read() == GPIO_PIN_SET ? 1 : 0);
+            res = (res << 1) | DOUT;
         }
         one_bit(); // 46
         return res;
@@ -147,13 +154,7 @@ public:
         SCL_L(); delay_us();
     }
 
-    // 假设你有这个函数，或者使用 DWT 延迟
-    void delay_us(uint32_t us=1) {
-        uint32_t start_tick = DWT->CYCCNT;
-        uint32_t delay_ticks = us * (SystemCoreClock / 1000000);
 
-        while ((DWT->CYCCNT - start_tick) < delay_ticks);
-    }
 };
 
 

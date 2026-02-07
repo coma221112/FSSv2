@@ -11,14 +11,13 @@
 #include "ZeroTracker.hpp"
 #include "JoystickProtocol.hpp"
 #include "Filters.hpp"
+#include "Util.hpp"
 
 #include "cmath"
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
-uint32_t DWT_GetUs(void) {
-    return DWT->CYCCNT / (HAL_RCC_GetHCLKFreq() / 1000000);
-}
+
 
 #define DEBOUNCE_MS 10
 #define NUM_BUTTONS 22
@@ -66,47 +65,28 @@ uint8_t HID_SendReport_Safe(USBD_HandleTypeDef *pdev,
     }
 }
 
+int32_t v0,v1,v2;
+int32_t dc0,dc1,dc2;
+int32_t dv0,dv1,dv2;
 extern "C" void RealMain(){
-	//PC13=1;
 	while(!(sg0.configGood&&sg1.configGood&&sg2.configGood));
+	HAL_Delay(10);
 	PC13=0;
 
-	//MedianFilter<15> mf0,mf1,mf2;
-	EMA ema0(4),ema1(4),ema2(4);
 	ZeroTracker zt0(sg0.ADCdata),zt1(sg1.ADCdata),zt2(sg2.ADCdata);
-	int32_t v0,v1,v2;
-	int32_t dc0,dc1,dc2;
-	int32_t dv0,dv1,dv2;
-	dc0=sg0.ADCdata;
-	dc1=sg1.ADCdata;
-	dc2=sg2.ADCdata;
 
-    uint32_t lastL = DWT_GetUs();;
-    uint16_t loopTimes[256];
-    uint8_t loopCount = 0;
+    uint32_t lastL = DWT_GetUs();
+    int8_t loopCount = 0;
 	while(true){
+		loopCount++;
 		uint32_t loopTime = DWT_GetUs()-lastL;
 		lastL = DWT_GetUs();
 
-		uint16_t maxLoopTime = 0;
-		loopCount++;
-		loopTimes[loopCount] = loopTime;
-		for(int i=0;i<256;i++){
-			if(loopTimes[i] > maxLoopTime) maxLoopTime = loopTimes[i];
-		}
-
-		float scale = 32767.f / joystickConfig.maxRange;
 		float maxRange = joystickConfig.maxRange;
 
-//		v0 = ema0.update(sg0.ADCdata);
-//		v1 = ema1.update(sg1.ADCdata);
-//		v2 = ema2.update(sg2.ADCdata);
-//		v0 = mf0.update(sg0.ADCdata);
-//		v1 = mf1.update(sg1.ADCdata);
-//		v2 = mf2.update(sg2.ADCdata);
-		v0 = sg0;
-		v1 = sg1;
-		v2 = sg2;
+		v0=sg0.filtered;
+		v1=sg1.filtered;
+		v2=sg2.filtered;
 		dc0=zt0.update(v0);
 		dc1=zt1.update(v1);
 		dc2=zt2.update(v2);
@@ -114,16 +94,17 @@ extern "C" void RealMain(){
 		dv1=v1-dc1;
 		dv2=v2-dc2;
 
+		float fx,fy,fz;
 		// X component: fx = v2*cos(330°) + v1*cos(210°) + v0*cos(90°)
 		//              fx = v2*0.866 + v1*(-0.866) + v0*0
 		//              fx ≈ 0.866*(v2 - v1)
-		float fx = Clamp((dv2 - dv1) / maxRange * 0.866f);
+		fx = Clamp((dv2 - dv1) / maxRange * 0.866f);
 		// Y component: fy = v0*sin(90°) + v1*sin(210°) + v2*sin(330°)
 		//              fy = v0*1 + v1*(-0.5) + v2*(-0.5)
 		//              fy = v0 - 0.5*(v1 + v2)
-		float fy = Clamp((0.5f*(dv1 + dv2) - dv0) / maxRange);
+		fy = Clamp((0.5f*(dv1 + dv2) - dv0) / maxRange);
 		// Z component: average compression (all sensors pushed down)
-		float fz = Clamp(((dv0 + dv1 + dv2) / maxRange / 3.f));
+		fz = Clamp(((dv0 + dv1 + dv2) / maxRange / 3.f));
 
 		// 1. 计算合力的大小（模长）
 		float magnitude = sqrtf(fx * fx + fy * fy);
@@ -142,28 +123,43 @@ extern "C" void RealMain(){
 		    fx = (fx / magnitude) * factor;
 		    fy = (fy / magnitude) * factor;
 		}
-
 		// Set axes
 		auto& report = joystickReport;
 		report.x = fx * 32767;
 		report.y = fy * 32767;
 		report.z = fz * 32767;
-		report.rx = dv0 * scale;
-		report.ry = dv1 * scale;
-		report.rz = dv2 * scale;
-		report.lt = maxLoopTime;
-		static GPIOPin buttonPins[21]={
-				PB1,
-				PB4,PB8,PB3,PA8,
-				PB12,PB15,PB6,PB14,PB5,
-				PA6,PA9,PA7,PB13,
-				PB9,PB0,PA10,PA15,
-				PB7,PB11,PB10
+		report.rx = dv0 / maxRange * 32767;
+		report.ry = dv1 / maxRange * 32767;
+		report.rz = dv2 / maxRange * 32767;
+		report.lt = loopTime;
+
+		static GPIOPin buttonPins[21] = {
+		    PB11,  // 1  <- 20
+		    PA15,  // 2  <- 18
+		    PB12,  // 3  <- 6
+		    PB13,  // 4  <- 14
+		    PB15,  // 5  <- 7
+		    PB5,   // 6  <- 10
+		    PB3,   // 7  <- 4
+		    PB6,   // 8  <- 8
+		    PB14,  // 9  <- 9
+		    PB7,   // 10 <- 19
+		    PA6,   // 11 <- 11
+		    PA10,  // 12 <- 17
+		    PA7,   // 13 <- 13
+		    PA9,   // 14 <- 12
+		    PB9,   // 15 <- 15
+		    PB0,   // 16 <- 16
+		    PA8,   // 17 <- 5
+		    PB4,   // 18 <- 2
+		    PB8,   // 19 <- 3
+		    PB10,  // 20 <- 21
+		    PB1    // 21 <- 1
 		};
+//		20 18 6 14 7 10 4 8 9 19 11 17 13 12 15 16 5 2 3 21 1
 		for(int i=0;i<21;i++){
 			raw_pins[i] = !buttonPins[i];
 		}
-
 		uint32_t now = HAL_GetTick(); // 使用毫秒级时间戳
 
 		for (int i = 0; i < NUM_BUTTONS; i++) {
@@ -186,11 +182,11 @@ extern "C" void RealMain(){
 		}
 
 		for(int i=0;i<21;i++){
-			report.buttons[i] = button_stable_state[i];
+			SetButton(report, button_stable_state[i], i);
 		}
 
 		static uint32_t pressStartTime = 0;
-		if (report.buttons[20] == 1) {
+		if (GetButton(report,20)) {
 		    // 如果是刚按下（计时器还没启动），则记录当前系统时间
 		    if (pressStartTime == 0) {
 		        pressStartTime = HAL_GetTick();

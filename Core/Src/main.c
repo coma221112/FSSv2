@@ -61,6 +61,7 @@ void delay_init(void) {
     DWT->CYCCNT = 0;
     DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 }
+
 /* USER CODE END 0 */
 
 /**

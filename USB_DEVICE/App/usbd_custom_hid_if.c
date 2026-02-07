@@ -91,60 +91,54 @@
 __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DESC_SIZE] __ALIGN_END =
 {
   /* USER CODE BEGIN 0 */
-		0x05, 0x01,       // Usage Page (Generic Desktop)
-		  0x09, 0x04,       // Usage (Joystick)
-		  0xA1, 0x01,       // Collection (Application)
+	0x05, 0x01,       // Usage Page (Generic Desktop)
+	0x09, 0x04,       // Usage (Joystick)
+	0xA1, 0x01,       // Collection (Application)
 
-		  0x85, 0x01,
-		  // Buttons 1..20
-		  0x05, 0x09,       //   Usage Page (Button)
-		  0x19, 0x01,       //   Usage Minimum (Button 1)
-		  0x29, 0x18,       //   Usage Maximum (Button 24)
-		  0x15, 0x00,       //   Logical Minimum (0)
-		  0x25, 0x01,       //   Logical Maximum (1)
-		  0x95, 0x18,       //   Report Count (24)
-		  0x75, 0x01,       //   Report Size (1 bit)
-		  0x81, 0x02,       //   Input (Data,Var,Abs)
+	// Buttons 1..32
+	0x05, 0x09,       //   Usage Page (Button)
+	0x19, 0x01,       //   Usage Minimum (Button 1)
+	0x29, 0x20,       //   Usage Maximum (Button 32)
+	0x15, 0x00,       //   Logical Minimum (0)
+	0x25, 0x01,       //   Logical Maximum (1)
+	0x95, 0x20,       //   Report Count (32)
+	0x75, 0x01,       //   Report Size (1 bit)
+	0x81, 0x02,       //   Input (Data,Var,Abs)
 
-		  // Padding to byte boundary (12 bits to make 32 bits total)
-		  0x95, 0x01,       //   Report Count (1)
-		  0x75, 0x08,       //   Report Size (8 bits)
-		  0x81, 0x01,       //   Input (Const,Array,Abs)
 
-		  // 6 Axes (X, Y, Z, Rx, Ry, Rz) - each 16-bit
-		  0x05, 0x01,       //   Usage Page (Generic Desktop)
-		  0x09, 0x30,       //   Usage (X)
-		  0x09, 0x31,       //   Usage (Y)
-		  0x09, 0x32,       //   Usage (Z)
-		  0x09, 0x33,       //   Usage (Rx)
-		  0x09, 0x34,       //   Usage (Ry)
-		  0x09, 0x35,       //   Usage (Rz)
-		  0x09, 0x36,       //   Usage (Rz)
-		  0x16, 0x00, 0x80, //   Logical Minimum (-32768)
-		  0x26, 0xFF, 0x7F, //   Logical Maximum (32767)
-		  0x75, 0x10,       //   Report Size (16 bits)
-		  0x95, 0x07,       //   Report Count (6)
-		  0x81, 0x02,       //   Input (Data,Var,Abs)
+	// 8 Axes  - each 16-bit
+	0x05, 0x01,       //   Usage Page (Generic Desktop)
+	0x09, 0x30,       //   Usage (X)
+	0x09, 0x31,       //   Usage (Y)
+	0x09, 0x32,       //   Usage (Z)
+	0x09, 0x33,       //   Usage (Rx)
+	0x09, 0x34,       //   Usage (Ry)
+	0x09, 0x35,       //   Usage (Rz)
+	0x09, 0x36,       //   Usage
+	0x09, 0x37,       //   Usage
+	0x16, 0x00, 0x80, //   Logical Minimum (-32768)
+	0x26, 0xFF, 0x7F, //   Logical Maximum (32767)
+	0x75, 0x10,       //   Report Size (16 bits)
+	0x95, 0x08,       //   Report Count (8)
+	0x81, 0x02,       //   Input (Data,Var,Abs)
 
-		  // ===== REPORT ID 2: Vendor 63-byte data =====
-		  0x85, 0x02,           // Report ID (2)
-		  0x06, 0x00, 0xFF,     // Usage Page (Vendor 0xFF00)
-		  0x09, 0x01,           // Usage (Vendor Usage 1)
+	// --- [INPUT] 3. Padding (44 bytes) 让 Input 报文满 64 字节 ---
+	// 这样做可以让你在 Python 里 read(64) 时数据对齐更简单
+	0x06, 0x00, 0xFF, //   Usage Page (Vendor)
+	0x09, 0x01,       //   Usage (Vendor 1)
+    0x15, 0x00,       //   Logical Minimum (0)
+    0x26, 0xFF, 0x00, //   Logical Maximum (255)
+	0x95, 0x2C,       //   Report Count (44 bytes)
+	0x75, 0x08,       //   Report Size (8 bits)
+	0x81, 0x03,       //   Input (Const,Var,Abs)
 
-		  // Input: device -> host
-		  0x15, 0x00,           // Logical Minimum (0)
-		  0x26, 0xFF, 0x00,     // Logical Maximum (255)
-		  0x75, 0x08,           // Report Size (8)
-		  0x95, 0x3F,           // Report Count (63)
-		  0x81, 0x02,           // INPUT (Data,Var,Abs)
-
-		  // Output: host -> device
-		  0x09, 0x01,           // Usage (Vendor Usage 1)
-		  0x15, 0x00,           // Logical Minimum (0)
-		  0x26, 0xFF, 0x00,     // Logical Maximum (255)
-		  0x75, 0x08,           // Report Size (8)
-		  0x95, 0x3F,           // Report Count (63)
-		  0x91, 0x02,           // OUTPUT (Data,Var,Abs)
+	// --- [OUTPUT] 接收配置的关键定义 (64 bytes) ---
+	0x09, 0x02,       //   Usage (Vendor 2)
+	0x15, 0x00,       //   Logical Minimum (0)
+	0x26, 0xFF, 0x00, //   Logical Maximum (255)
+	0x95, 0x40,       //   Report Count (64)
+	0x75, 0x08,       //   Report Size (8 bits)
+	0x91, 0x02,       //   Output (Data,Var,Abs)
   /* USER CODE END 0 */
   0xC0    /*     END_COLLECTION	             */
 };
@@ -230,14 +224,15 @@ static int8_t CUSTOM_HID_OutEvent_FS(uint8_t event_idx, uint8_t state)
 {
   /* USER CODE BEGIN 6 */
 	USBD_CUSTOM_HID_HandleTypeDef *hhid = (USBD_CUSTOM_HID_HandleTypeDef*)hUsbDeviceFS.pClassData;
-	if (hhid->Report_buf[0] != 0x02) return (USBD_OK);
-	// Get the received data
+
 	JoystickConfig_t temp;
-	if (hhid->Report_buf[1] != 0xFF){
-		memcpy(&temp, hhid->Report_buf, sizeof(JoystickConfig_t));;
+	memcpy(&temp, hhid->Report_buf, sizeof(JoystickConfig_t));
+	if (temp.magic == 999){
 		joystickConfig=temp;
 	}
-	configNeedsSending = 1;
+	else{
+		configNeedsSending = 1;
+	}
 	return (USBD_OK);
   /* USER CODE END 6 */
 }
