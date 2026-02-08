@@ -12,7 +12,7 @@
 typedef struct {
     uint8_t buttons[4];
     int16_t x, y, z, rx, ry, rz, lt, _;
-    uint8_t  padding[44];
+//    uint8_t  padding[44];
 } __attribute__((packed)) USB_HID_JoystickReport_t;
 
 typedef struct{
@@ -21,7 +21,7 @@ typedef struct{
 	uint32_t maxRange;
     uint32_t calibLongPressMs;
     float deadzone;
-    uint8_t  padding[48];
+    uint8_t  padding[4];
 } __attribute__((packed)) JoystickConfig_t;
 
 #ifdef __cplusplus

@@ -122,21 +122,19 @@ __ALIGN_BEGIN static uint8_t CUSTOM_HID_ReportDesc_FS[USBD_CUSTOM_HID_REPORT_DES
 	0x95, 0x08,       //   Report Count (8)
 	0x81, 0x02,       //   Input (Data,Var,Abs)
 
-	// --- [INPUT] 3. Padding (44 bytes) 让 Input 报文满 64 字节 ---
-	// 这样做可以让你在 Python 里 read(64) 时数据对齐更简单
-	0x06, 0x00, 0xFF, //   Usage Page (Vendor)
-	0x09, 0x01,       //   Usage (Vendor 1)
-    0x15, 0x00,       //   Logical Minimum (0)
-    0x26, 0xFF, 0x00, //   Logical Maximum (255)
-	0x95, 0x2C,       //   Report Count (44 bytes)
-	0x75, 0x08,       //   Report Size (8 bits)
-	0x81, 0x03,       //   Input (Const,Var,Abs)
 
-	// --- [OUTPUT] 接收配置的关键定义 (64 bytes) ---
+//	0x06, 0x00, 0xFF, //   Usage Page (Vendor)
+//	0x09, 0x01,       //   Usage (Vendor 1)
+//  0x15, 0x00,       //   Logical Minimum (0)
+//  0x26, 0xFF, 0x00, //   Logical Maximum (255)
+//	0x95, 0x2C,       //   Report Count (44 bytes)
+//	0x75, 0x08,       //   Report Size (8 bits)
+//	0x81, 0x03,       //   Input (Const,Var,Abs)
+
 	0x09, 0x02,       //   Usage (Vendor 2)
 	0x15, 0x00,       //   Logical Minimum (0)
 	0x26, 0xFF, 0x00, //   Logical Maximum (255)
-	0x95, 0x40,       //   Report Count (64)
+	0x95, 0x14,       //   Report Count (64)
 	0x75, 0x08,       //   Report Size (8 bits)
 	0x91, 0x02,       //   Output (Data,Var,Abs)
   /* USER CODE END 0 */

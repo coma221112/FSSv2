@@ -40,6 +40,7 @@ inline float Clamp(float raw_val){
 	return fmaxf(-1.0f, fminf(1.0f, raw_val));
 }
 
+volatile bool sendBit = false;
 uint8_t HID_SendReport_Safe(USBD_HandleTypeDef *pdev,
                                         uint8_t *report,
                                         uint16_t len,
@@ -61,6 +62,8 @@ uint8_t HID_SendReport_Safe(USBD_HandleTypeDef *pdev,
         if (hhid->state == CUSTOM_HID_BUSY) {
             return USBD_BUSY;
         }
+        sendBit = !sendBit;
+        PC13 = sendBit;
         return USBD_CUSTOM_HID_SendReport(pdev, report, len);
     }
 }
@@ -211,7 +214,7 @@ extern "C" void RealMain(){
 		    }
 		}
 		else{
-			HID_SendReport_Safe(&hUsbDeviceFS, (uint8_t*)&report, sizeof(report), 0);
+			HID_SendReport_Safe(&hUsbDeviceFS, (uint8_t*)&report, sizeof(report),0);
 		}
 	}
 }
