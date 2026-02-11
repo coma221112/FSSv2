@@ -71,6 +71,11 @@ uint8_t HID_SendReport_Safe(USBD_HandleTypeDef *pdev,
 int32_t v0,v1,v2;
 int32_t dc0,dc1,dc2;
 int32_t dv0,dv1,dv2;
+SWV<2560> swv0;//,swv1,swv2;
+EMA swvEma(10240);
+float swvRaw;
+float swv;
+int32_t lastF = 0;
 extern "C" void RealMain(){
 	while(!(sg0.configGood&&sg1.configGood&&sg2.configGood));
 	HAL_Delay(10);
@@ -90,13 +95,19 @@ extern "C" void RealMain(){
 		v0=sg0.filtered;
 		v1=sg1.filtered;
 		v2=sg2.filtered;
-		dc0=zt0.update(v0);
-		dc1=zt1.update(v1);
-		dc2=zt2.update(v2);
+		if(DWT_GetUs() - lastF > 10000){
+			lastF = DWT_GetUs();
+			swvRaw = swv0.update(abs(dv0-dv1) + abs(dv1-dv2) + abs(dv2-dv0));
+			swv = swvRaw;//swvEma.update(swvRaw);
+			if(swvRaw < 10000000){
+				dc0=zt0.update(v0);
+				dc1=zt1.update(v1);
+				dc2=zt2.update(v2);
+			}
+		}
 		dv0=v0-dc0;
 		dv1=v1-dc1;
 		dv2=v2-dc2;
-
 		float fx,fy,fz;
 		// X component: fx = v2*cos(330°) + v1*cos(210°) + v0*cos(90°)
 		//              fx = v2*0.866 + v1*(-0.866) + v0*0
@@ -126,6 +137,7 @@ extern "C" void RealMain(){
 		    fx = (fx / magnitude) * factor;
 		    fy = (fy / magnitude) * factor;
 		}
+
 		// Set axes
 		auto& report = joystickReport;
 		report.x = fx * 32767;
@@ -135,6 +147,8 @@ extern "C" void RealMain(){
 		report.ry = dv1 / maxRange * 32767;
 		report.rz = dv2 / maxRange * 32767;
 		report.lt = loopTime;
+		report._ = swv;//+swv1.update(report.y);//+swv2.update(dv2);
+
 
 		static GPIOPin buttonPins[21] = {
 		    PB11,  // 1  <- 20

@@ -18,8 +18,8 @@ public:
     GPIOPin DOUT;
     GPIOPin SCK;
 
-    EMA dema = EMA(23);
-    SMA<15> sma = SMA<15>();
+    DEMA ema = DEMA(20);
+    SMA<13> sma = SMA<13>();
     volatile uint16_t ISRTime = 0;
     volatile int32_t ADCdata = 0;
     volatile int32_t filtered = 0;
@@ -47,7 +47,7 @@ public:
 
 		ADCdata = ADCreadImmediately();
 		syncConfig();
-
+//		filtered = ADCdata;
 		filtered = sma.update(ADCdata);
 
 		uint32_t pinMask = DOUT.pin_;
