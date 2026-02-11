@@ -71,7 +71,7 @@ uint8_t HID_SendReport_Safe(USBD_HandleTypeDef *pdev,
 int32_t v0,v1,v2;
 int32_t dc0,dc1,dc2;
 int32_t dv0,dv1,dv2;
-SWV<2560> swv0;//,swv1,swv2;
+SWV<256> swv0;//,swv1,swv2;
 EMA swvEma(10240);
 float swvRaw;
 float swv;
@@ -99,7 +99,7 @@ extern "C" void RealMain(){
 			lastF = DWT_GetUs();
 			swvRaw = swv0.update(abs(dv0-dv1) + abs(dv1-dv2) + abs(dv2-dv0));
 			swv = swvRaw;//swvEma.update(swvRaw);
-			if(swvRaw < 10000000){
+			if(swvRaw < 500000){
 				dc0=zt0.update(v0);
 				dc1=zt1.update(v1);
 				dc2=zt2.update(v2);
